@@ -11,6 +11,7 @@ import SignupButton from "@/components/buttons/SubmitButton";
 import { signup } from "@/actions"
 import { cn } from "@/helpers/shadcn"
 import ErrorField from "../ErrorField";
+import { SignupFormState } from "@/types";
 
 export function SignupForm({
   className,
@@ -18,42 +19,54 @@ export function SignupForm({
 }: React.ComponentPropsWithoutRef<"form">) {
 
   const router = useRouter();
-  const [state, formAction] = useActionState (signup, { status: "error" });
+  const [ state, setState ] = useState<SignupFormState>({ status: "error" })
   const [ loginData, setLoginData ] = useState<{ username: string; password: string; }>({ username: "", password: "" });
 
-  useEffect(() => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 
-    (async () => {
+    e.preventDefault ();
 
-      if (state.status == "success") {
+    const form = e.target as HTMLFormElement;
 
-        const signInOp = await signIn ("credentials", {
-          redirect: false,
-          username: loginData.username,
-          password: loginData.password,
-        })
+    const formData = new FormData (form);
 
-        if (signInOp?.error) {
-    
-          return {
-            status: "error",
-            error: {
-              message: "Auth Error"
-            }
+    const res = await signup (formData);
+
+    setState (res);
+
+    if (res.status == "success") {
+
+      const signInOp = await signIn ("credentials", {
+        redirect: false,
+        username: loginData.username,
+        password: loginData.password,
+      })
+
+      if (signInOp?.error) {
+
+        return setState({
+          status: "error",
+          error: {
+            code: "INVALID_CREDENTIALS",
+            status: 401,
+            message: "Authentication Error",
           }
-    
-        }
-
-        router.push('/dashboard');
+        })
 
       }
 
-    })();  
+      router.push('/dashboard');
 
-  }, [state, router]);
+    } else {
+
+      console.log ("error", res.error);
+
+    }
+
+  }
 
   return (
-    <form className={cn("flex flex-col gap-6", className)} action={formAction} {...props}>
+    <form className={cn("flex flex-col gap-6", className)} onSubmit={handleSubmit} {...props}>
       <div className="flex flex-col items-center gap-2 text-center">
         <h1 className="text-2xl font-bold">Create a new account</h1>
       </div>

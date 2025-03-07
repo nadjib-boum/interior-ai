@@ -1,5 +1,5 @@
 import CredentialsProvider from "next-auth/providers/credentials"
-import type { AuthOptions } from "next-auth";
+import { getServerSession, type AuthOptions } from "next-auth";
 import userService from "@/services/user";
 
 
@@ -61,3 +61,10 @@ export const authOptions: AuthOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET
 };
+
+
+export const auth = async () => {
+
+  return await getServerSession (authOptions);
+
+}

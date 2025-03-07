@@ -1,16 +1,11 @@
 "use server";
-import { z } from "zod";
 import userService from "@/services/user";
+import roomService from "@/services/room";
 import APIError from "@/utils/error";
-import type { SignupFormState } from "@/types";
+import { auth } from "@/utils/auth";
+import { type SignupFormState, type GenerateRoomData, generateRoomSchema, signupSchema } from "@/types";
 
-const signupSchema = z.object({
-  email: z.string().email({ message: "Invalid email address" }),
-  username: z.string().min(4, { message: "Username must be at least 3 characters" }),
-  password: z.string().min(4, { message: "Password must be at least 8 characters" })
-})
-
-export async function signup(prevState: SignupFormState, formData: FormData): Promise<SignupFormState> {
+export async function signup(formData: FormData): Promise<SignupFormState> {
   "use server";
 
   try {
@@ -63,5 +58,75 @@ export async function signup(prevState: SignupFormState, formData: FormData): Pr
     }
 
   } 
+
+}
+
+
+export async function generateRoom (data: GenerateRoomData) {
+
+  try {
+
+    const session = await auth ();
+
+    if (!session) {
+      throw new APIError ({
+        status: 400,
+        code: "INVALID_CREDENTIALS",
+      });
+    }
+
+    const validatedFields = generateRoomSchema.safeParse(data);
+
+    if (!validatedFields.success) {
+
+      throw new APIError ({
+        status: 400,
+        code: "INVALID_INPUT",
+        message: "Room Data is invalid",
+        details: [validatedFields.error.flatten().fieldErrors],
+      });
+
+    }
+
+    const { imageUrl, roomType, designType, details } = data;
+
+    const image = await roomService.createRoomImage ({
+      originalImage: imageUrl,
+      roomType,
+      designType,
+      details,
+      userId: +session.user.id,
+    });
+
+    return {
+      status: "success",
+      data: {
+        image
+      }
+    };
+
+  } catch (error) {
+
+    if (error instanceof APIError) {
+
+      const errData = error.getError ();
+
+      return {
+        status: "error",
+        error: errData
+      };
+
+    }
+
+    console.log ("error", error);
+
+    return {
+      status: "error",
+      error: {
+        message: "Something Went Wrong"
+      }
+    };
+
+  }
 
 }

@@ -1,14 +1,14 @@
-"use client";
+import { auth } from "@/utils/auth"; 
+import { redirect } from "next/navigation";
 
-// import { useSession } from "next-auth/react";
+export default async function Home() {
 
-export default function Home() {
+  const session = await auth ();
 
-  // const session = useSession ();
+  if (session) {
+    redirect("/dashboard");
+  } else {
+    redirect ("/login");
+  }
 
-  // console.log ("session", session)
-
-  return (
-    <>hello</>
-  );
 }
